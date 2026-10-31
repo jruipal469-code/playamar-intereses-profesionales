@@ -1,0 +1,10 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {areas,items} from './dist/datos.js';
+import {puntuar,interpretar} from './dist/motor.js';
+test('80 ítems: cada uno pertenece exactamente a un área de 16',()=>{assert.equal(items.length,80);assert.ok(areas.every(a=>a.items.length===16));assert.deepEqual(areas.flatMap(a=>a.items).sort((a,b)=>a-b),Array.from({length:80},(_,i)=>i+1));});
+test('cada respuesta individual puntúa solo en su área',()=>{for(let i=1;i<=80;i++){let r=Array(80).fill(0);r[i-1]=1;let s=puntuar(r);assert.equal(s[0].id,areas.find(a=>a.items.includes(i)).id);assert.equal(s[0].total,1);assert.equal(s.slice(1).reduce((n,a)=>n+a.total,0),0);}});
+test('todas las respuestas afirmativas no crean un ganador artificial',()=>{let s=puntuar(Array(80).fill(1));assert.deepEqual(s.map(a=>a.total),[16,16,16,16,16]);assert.equal(interpretar(s).tipo,'igual');});
+test('todas las negativas no se interpretan como afinidad',()=>{assert.equal(interpretar(puntuar(Array(80).fill(0))).tipo,'sin-interes');});
+test('respeta empates en primer y segundo nivel',()=>{let r=Array(80).fill(0);[5,5,3,3,1].forEach((n,i)=>areas[i].items.slice(0,n).forEach(id=>r[id-1]=1));let p=interpretar(puntuar(r));assert.equal(p.primeras.length,2);assert.equal(p.segundas.length,2);});
+test('no acepta formularios incompletos, dispersos ni valores inválidos',()=>{for(let r of [[],Array(80),Array(79).fill(0),Array(80).fill(null),Array(80).fill(2)])assert.throws(()=>puntuar(r));});
